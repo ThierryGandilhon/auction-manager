@@ -1,0 +1,13 @@
+Migrations Alembic — Auction Manager
+
+Pour créer une migration après avoir modifié models.py :
+  docker compose exec backend alembic revision --autogenerate -m "description du changement"
+
+Pour appliquer les migrations :
+  docker compose exec backend alembic upgrade head
+
+Pour annuler la dernière migration :
+  docker compose exec backend alembic downgrade -1
+
+Pour voir l'historique :
+  docker compose exec backend alembic history

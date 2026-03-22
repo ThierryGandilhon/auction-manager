@@ -1,0 +1,32 @@
+services:
+
+  backend:
+    build: ./backend
+    container_name: auction-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app              # hot-reload du code
+      - auction-data:/app/data      # base SQLite persistante
+      - auction-uploads:/app/uploads # photos persistantes
+    environment:
+      - DATABASE_URL=sqlite:////app/data/auction.db
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: auction-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app             # hot-reload du code
+      - /app/node_modules           # évite d'écraser node_modules du container
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  auction-data:      # données SQLite persistantes entre les redémarrages
+  auction-uploads:   # photos persistantes
