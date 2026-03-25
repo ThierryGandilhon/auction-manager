@@ -4,6 +4,8 @@ import { Etude } from '../types/index'
 import Modal from '../components/Modal'
 import Btn from '../components/Btn'
 import Field from '../components/Field'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
 
 const empty = { nom: '', ville: '', email: '', telephone: '', site_web: '' }
 
@@ -36,52 +38,48 @@ export default function Etudes() {
   const f = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 style={{ fontSize: 32, marginBottom: 4 }}>Études</h1>
-          <p style={{ color: 'var(--text3)' }}>Commissaires-priseurs</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Études</h1>
+          <p className="text-muted-foreground mt-1">Commissaires-priseurs</p>
         </div>
         <Btn variant="primary" onClick={() => open()}>+ Nouvelle étude</Btn>
       </div>
 
-      <div style={{ display: 'grid', gap: 12 }}>
+      <div className="grid gap-3">
         {etudes.map(e => (
-          <div key={e.id} style={{
-            background: 'var(--bg2)', border: '1px solid var(--border)',
-            borderRadius: 'var(--radius)', padding: '16px 20px',
-            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          }}>
-            <div>
-              <div style={{ fontWeight: 500, marginBottom: 4 }}>{e.nom}</div>
-              <div style={{ fontSize: 13, color: 'var(--text3)', display: 'flex', gap: 16 }}>
-                {e.ville && <span>📍 {e.ville}</span>}
-                {e.email && <span>✉ {e.email}</span>}
-                {e.telephone && <span>☎ {e.telephone}</span>}
+          <Card key={e.id}>
+            <CardContent className="py-4 flex justify-between items-center">
+              <div>
+                <div className="font-medium mb-1">{e.nom}</div>
+                <div className="text-sm text-muted-foreground flex gap-4">
+                  {e.ville && <span>📍 {e.ville}</span>}
+                  {e.email && <span>✉ {e.email}</span>}
+                  {e.telephone && <span>☎ {e.telephone}</span>}
+                </div>
               </div>
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <Btn size="sm" onClick={() => open(e)}>Modifier</Btn>
-              <Btn size="sm" variant="danger" onClick={() => del(e.id)}>Supprimer</Btn>
-            </div>
-          </div>
+              <div className="flex gap-2">
+                <Btn size="sm" onClick={() => open(e)}>Modifier</Btn>
+                <Btn size="sm" variant="danger" onClick={() => del(e.id)}>Supprimer</Btn>
+              </div>
+            </CardContent>
+          </Card>
         ))}
         {etudes.length === 0 && (
-          <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 40 }}>
-            Aucune étude enregistrée
-          </div>
+          <div className="text-muted-foreground text-center py-10">Aucune étude enregistrée</div>
         )}
       </div>
 
       {modal && (
         <Modal title={editing ? 'Modifier l\'étude' : 'Nouvelle étude'} onClose={() => setModal(false)}>
-          <div style={{ display: 'grid', gap: 16 }}>
-            <Field label="Nom *"><input value={form.nom} onChange={e => f('nom', e.target.value)} placeholder="Hôtel Drouot" /></Field>
-            <Field label="Ville"><input value={form.ville} onChange={e => f('ville', e.target.value)} placeholder="Paris" /></Field>
-            <Field label="Email"><input value={form.email} onChange={e => f('email', e.target.value)} placeholder="contact@etude.fr" /></Field>
-            <Field label="Téléphone"><input value={form.telephone} onChange={e => f('telephone', e.target.value)} /></Field>
-            <Field label="Site web"><input value={form.site_web} onChange={e => f('site_web', e.target.value)} /></Field>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+          <div className="grid gap-4">
+            <Field label="Nom *"><Input value={form.nom} onChange={e => f('nom', e.target.value)} placeholder="Hôtel Drouot" /></Field>
+            <Field label="Ville"><Input value={form.ville} onChange={e => f('ville', e.target.value)} placeholder="Paris" /></Field>
+            <Field label="Email"><Input value={form.email} onChange={e => f('email', e.target.value)} placeholder="contact@etude.fr" /></Field>
+            <Field label="Téléphone"><Input value={form.telephone} onChange={e => f('telephone', e.target.value)} /></Field>
+            <Field label="Site web"><Input value={form.site_web} onChange={e => f('site_web', e.target.value)} /></Field>
+            <div className="flex justify-end gap-2 pt-2">
               <Btn onClick={() => setModal(false)}>Annuler</Btn>
               <Btn variant="primary" onClick={save}>Enregistrer</Btn>
             </div>
