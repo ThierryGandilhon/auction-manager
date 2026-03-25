@@ -1,4 +1,5 @@
-import { ReactNode, CSSProperties } from 'react'
+import { ReactNode } from 'react'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   children: ReactNode
@@ -6,32 +7,30 @@ interface Props {
   variant?: 'primary' | 'ghost' | 'danger'
   size?: 'sm' | 'md'
   type?: 'button' | 'submit'
-  style?: CSSProperties
   disabled?: boolean
 }
 
-export default function Btn({ children, onClick, variant = 'ghost', size = 'md', type = 'button', style, disabled }: Props) {
-  const base: CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', gap: 6,
-    border: '1px solid',
-    borderRadius: 'var(--radius-sm)',
-    fontWeight: 500,
-    transition: 'all 0.15s',
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.5 : 1,
-    padding: size === 'sm' ? '5px 12px' : '8px 16px',
-    fontSize: size === 'sm' ? 13 : 14,
-    ...(variant === 'primary' ? {
-      background: 'var(--accent)', borderColor: 'var(--accent)',
-      color: '#0f0e0c',
-    } : variant === 'danger' ? {
-      background: 'var(--red-dim)', borderColor: 'var(--red)',
-      color: 'var(--red)',
-    } : {
-      background: 'transparent', borderColor: 'var(--border2)',
-      color: 'var(--text2)',
-    }),
-    ...style,
-  }
-  return <button type={type} onClick={onClick} style={base} disabled={disabled}>{children}</button>
+const variantMap = {
+  primary: 'default',
+  ghost: 'outline',
+  danger: 'destructive',
+} as const
+
+const sizeMap = {
+  sm: 'sm',
+  md: 'default',
+} as const
+
+export default function Btn({ children, onClick, variant = 'ghost', size = 'md', type = 'button', disabled }: Props) {
+  return (
+    <Button
+      type={type}
+      onClick={onClick}
+      variant={variantMap[variant]}
+      size={sizeMap[size]}
+      disabled={disabled}
+    >
+      {children}
+    </Button>
+  )
 }

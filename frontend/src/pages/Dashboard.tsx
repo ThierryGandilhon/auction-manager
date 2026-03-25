@@ -10,48 +10,45 @@ export default function Dashboard() {
 
   useEffect(() => { statsApi.dashboard().then(setStats) }, [])
 
-  if (!stats) return <div style={{ color: 'var(--text3)' }}>Chargement...</div>
+  if (!stats) return <div className="text-muted-foreground">Chargement...</div>
 
   return (
-    <div>
-      <div style={{ marginBottom: 32 }}>
-        <h1 style={{ fontSize: 32, marginBottom: 6 }}>Tableau de bord</h1>
-        <p style={{ color: 'var(--text3)' }}>Vue d'ensemble de votre activité</p>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-3xl font-semibold tracking-tight">Tableau de bord</h1>
+        <p className="text-muted-foreground mt-1">Vue d'ensemble de votre activité</p>
       </div>
 
-      {/* Finances */}
-      <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>
-        Finances
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <StatCard label="Total investi" value={fmt(stats.total_investi)} color="var(--red)" />
-        <StatCard label="Total revendu" value={fmt(stats.total_revendu)} color="var(--green)" />
-        <StatCard
-          label="Marge totale"
-          value={fmt(stats.marge_totale)}
-          color={stats.marge_totale >= 0 ? 'var(--green)' : 'var(--red)'}
-        />
-      </div>
+      <section>
+        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Finances</div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <StatCard label="Total investi" value={fmt(stats.total_investi)} valueClassName="text-red-500" />
+          <StatCard label="Total revendu" value={fmt(stats.total_revendu)} valueClassName="text-green-500" />
+          <StatCard
+            label="Marge totale"
+            value={fmt(stats.marge_totale)}
+            valueClassName={stats.marge_totale >= 0 ? 'text-green-500' : 'text-red-500'}
+          />
+        </div>
+      </section>
 
-      {/* Objets */}
-      <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>
-        Objets
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16, marginBottom: 32 }}>
-        <StatCard label="Total objets" value={stats.total_objets} />
-        <StatCard label="En stock" value={stats.objets_en_stock} color="var(--text2)" />
-        <StatCard label="En vente" value={stats.objets_en_vente} color="var(--blue)" />
-        <StatCard label="Vendus" value={stats.objets_vendus} color="var(--green)" />
-      </div>
+      <section>
+        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Objets</div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <StatCard label="Total objets" value={stats.total_objets} />
+          <StatCard label="En stock" value={stats.objets_en_stock} valueClassName="text-muted-foreground" />
+          <StatCard label="En vente" value={stats.objets_en_vente} valueClassName="text-blue-500" />
+          <StatCard label="Vendus" value={stats.objets_vendus} valueClassName="text-green-500" />
+        </div>
+      </section>
 
-      {/* Activité */}
-      <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 2, marginBottom: 12 }}>
-        Activité
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 16 }}>
-        <StatCard label="Lots achetés" value={stats.total_lots_achetes} />
-        <StatCard label="Clients" value={stats.total_clients} color="var(--accent)" />
-      </div>
+      <section>
+        <div className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Activité</div>
+        <div className="grid grid-cols-2 gap-4">
+          <StatCard label="Lots achetés" value={stats.total_lots_achetes} />
+          <StatCard label="Clients" value={stats.total_clients} valueClassName="text-primary" />
+        </div>
+      </section>
     </div>
   )
 }
