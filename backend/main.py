@@ -5,11 +5,11 @@ import os
 
 from database import engine, Base
 import models
-from routers import etudes, auctions, achats, objets, clients, ventes, stats
+from routers import etudes, achats, lots, objets, clients, ventes, stats
 
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Auction Manager", version="2.0.0")
+app = FastAPI(title="Auction Manager", version="3.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,8 +24,8 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 app.include_router(etudes.router)
-app.include_router(auctions.router)
 app.include_router(achats.router)
+app.include_router(lots.router)
 app.include_router(objets.router)
 app.include_router(clients.router)
 app.include_router(ventes.router)
@@ -34,4 +34,4 @@ app.include_router(stats.router)
 
 @app.get("/")
 def root():
-    return {"message": "Auction Manager API v2", "docs": "/docs"}
+    return {"message": "Auction Manager API v3", "docs": "/docs"}

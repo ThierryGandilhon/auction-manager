@@ -36,7 +36,7 @@ export default function Dashboard() {
         <div className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Objets</div>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatCard label="Total objets" value={stats.total_objets} />
-          <StatCard label="En stock" value={stats.objets_en_stock} valueClassName="text-muted-foreground" />
+          <StatCard label="Achetés" value={stats.objets_achetes} valueClassName="text-muted-foreground" />
           <StatCard label="En vente" value={stats.objets_en_vente} valueClassName="text-blue-500" />
           <StatCard label="Vendus" value={stats.objets_vendus} valueClassName="text-green-500" />
         </div>
@@ -45,7 +45,7 @@ export default function Dashboard() {
       <section>
         <div className="text-xs text-muted-foreground uppercase tracking-widest mb-3">Activité</div>
         <div className="grid grid-cols-2 gap-4">
-          <StatCard label="Lots achetés" value={stats.total_lots_achetes} />
+          <StatCard label="Lots" value={stats.total_lots} />
           <StatCard label="Clients" value={stats.total_clients} valueClassName="text-primary" />
         </div>
       </section>

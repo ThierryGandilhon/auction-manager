@@ -11,4 +11,4 @@ COPY . .
 RUN mkdir -p /app/uploads
 
 # Lancer les migrations puis démarrer le serveur
-CMD ["sh", "-c", "alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]
+CMD ["sh", "-c", "(alembic upgrade head || alembic stamp head) && uvicorn main:app --host 0.0.0.0 --port 8000 --reload"]

@@ -1,27 +1,27 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { objetsApi, ventesApi, clientsApi, photoUrl } from '../lib/api'
-import { Objet, Client, Vente } from '../types/index'
+import { objetsApi, photoUrl } from '../lib/api'
+import type { Objet } from '../types/index'
 import Modal from '../components/Modal'
 import Btn from '../components/Btn'
 import Field from '../components/Field'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
-const statutBadge: Record<string, { label: string; color: string; bg: string }> = {
-  en_stock: { label: 'En stock', color: 'var(--text2)', bg: 'var(--bg3)' },
-  en_vente: { label: 'En vente', color: 'var(--blue)', bg: 'var(--blue-dim)' },
-  vendu:    { label: 'Vendu',    color: 'var(--green)', bg: 'var(--green-dim)' },
+const statutConfig: Record<string, { label: string; className: string }> = {
+  'acheté':  { label: 'Acheté',   className: 'bg-muted text-muted-foreground hover:bg-muted' },
+  en_vente:  { label: 'En vente', className: 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/10' },
+  vendu:     { label: 'Vendu',    className: 'bg-green-500/10 text-green-600 hover:bg-green-500/10' },
 }
 
-const emptyVente = { plateforme: '', prix_vente: '', date_vente: '', statut: 'en_ligne', client_id: '' }
+const textareaCls = "flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 
 export default function ObjetDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [objet, setObjet] = useState<Objet | null>(null)
-  const [clients, setClients] = useState<Client[]>([])
-  const [venteModal, setVenteModal] = useState(false)
-  const [venteForm, setVenteForm] = useState(emptyVente)
-  const [editVente, setEditVente] = useState<Vente | null>(null)
   const [editObjetModal, setEditObjetModal] = useState(false)
   const [editForm, setEditForm] = useState<Record<string, string>>({})
   const fileRef = useRef<HTMLInputElement>(null)
@@ -29,7 +29,6 @@ export default function ObjetDetail() {
   const load = async () => {
     const o = await objetsApi.get(Number(id))
     setObjet(o)
-    clientsApi.list().then(setClients)
   }
   useEffect(() => { load() }, [id])
 
@@ -43,198 +42,164 @@ export default function ObjetDetail() {
     if (confirm('Supprimer cette photo ?')) { await objetsApi.deletePhoto(photoId); load() }
   }
 
-  const openVenteModal = () => {
-    const v = objet?.vente
-    setEditVente(v || null)
-    setVenteForm(v ? {
-      plateforme: v.plateforme || '', prix_vente: v.prix_vente?.toString() || '',
-      date_vente: v.date_vente || '', statut: v.statut,
-      client_id: v.client_id?.toString() || '',
-    } : emptyVente)
-    setVenteModal(true)
-  }
-
-  const saveVente = async () => {
-    const data = {
-      objet_id: Number(id),
-      plateforme: venteForm.plateforme || null,
-      prix_vente: venteForm.prix_vente ? Number(venteForm.prix_vente) : null,
-      date_vente: venteForm.date_vente || null,
-      statut: venteForm.statut,
-      client_id: venteForm.client_id ? Number(venteForm.client_id) : null,
-    }
-    if (editVente) await ventesApi.update(editVente.id, data)
-    else await ventesApi.create(data)
-    setVenteModal(false)
-    load()
-  }
-
   const openEditObjet = () => {
     if (!objet) return
     setEditForm({
       designation: objet.designation, description: objet.description || '',
       couleur: objet.couleur || '', materiau: objet.materiau || '',
       poids: objet.poids || '', dimensions: objet.dimensions || '',
-      periode: objet.periode || '', prix_estime: objet.prix_estime?.toString() || '',
+      periode: objet.periode || '',
+      prix_achat: objet.prix_achat?.toString() || '',
+      prix_estime: objet.prix_estime?.toString() || '',
     })
     setEditObjetModal(true)
   }
 
   const saveObjet = async () => {
-    await objetsApi.update(Number(id), { ...editForm, achat_id: objet!.achat_id, prix_estime: editForm.prix_estime ? Number(editForm.prix_estime) : null })
+    await objetsApi.update(Number(id), {
+      ...editForm,
+      lot_id: objet!.lot_id,
+      prix_achat: editForm.prix_achat ? Number(editForm.prix_achat) : null,
+      prix_estime: editForm.prix_estime ? Number(editForm.prix_estime) : null,
+    })
     setEditObjetModal(false)
     load()
   }
 
-  const fv = (k: string, v: string) => setVenteForm(p => ({ ...p, [k]: v }))
   const fe = (k: string, v: string) => setEditForm(p => ({ ...p, [k]: v }))
 
-  if (!objet) return <div style={{ color: 'var(--text3)' }}>Chargement...</div>
+  if (!objet) return <div className="text-muted-foreground">Chargement...</div>
 
-  const badge = statutBadge[objet.statut]
+  const cfg = statutConfig[objet.statut] || statutConfig['acheté']
   const fmt = (n?: number) => n != null ? Number(n).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : '—'
 
   return (
-    <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+    <div className="space-y-6">
+      <div>
         <Btn size="sm" onClick={() => navigate(-1)}>← Retour</Btn>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+      <div className="flex justify-between items-start">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-            <h1 style={{ fontSize: 32 }}>{objet.designation}</h1>
-            <span style={{ fontSize: 13, padding: '3px 10px', borderRadius: 20, background: badge.bg, color: badge.color }}>{badge.label}</span>
+          <div className="flex items-center gap-3 mb-1">
+            <h1 className="text-3xl font-semibold tracking-tight">{objet.designation}</h1>
+            <Badge className={cfg.className}>{cfg.label}</Badge>
           </div>
-          <div style={{ fontSize: 13, color: 'var(--text3)' }}>
-            Lot {objet.achat.numero_lot || objet.achat_id} · {objet.achat.auction?.titre}
+          <div className="text-sm text-muted-foreground">
+            Lot {objet.lot.numero_lot || objet.lot_id}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div className="flex gap-2">
           <Btn size="sm" onClick={openEditObjet}>Modifier</Btn>
-          <Btn size="sm" variant="primary" onClick={openVenteModal}>
-            {objet.vente ? 'Modifier la vente' : 'Mettre en vente'}
-          </Btn>
-        </div>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, marginBottom: 28 }}>
-        {/* Caractéristiques */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20 }}>
-          <h3 style={{ fontSize: 16, marginBottom: 16 }}>Caractéristiques</h3>
-          <div style={{ display: 'grid', gap: 10 }}>
-            {[
-              ['Couleur', objet.couleur], ['Matériau', objet.materiau],
-              ['Poids', objet.poids], ['Dimensions', objet.dimensions],
-              ['Période', objet.periode],
-            ].map(([k, v]) => v ? (
-              <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                <span style={{ color: 'var(--text3)' }}>{k}</span>
-                <span>{v}</span>
-              </div>
-            ) : null)}
-          </div>
-          {objet.description && <p style={{ marginTop: 16, fontSize: 14, color: 'var(--text2)', lineHeight: 1.6 }}>{objet.description}</p>}
-        </div>
-
-        {/* Finance */}
-        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20 }}>
-          <h3 style={{ fontSize: 16, marginBottom: 16 }}>Finance</h3>
-          <div style={{ display: 'grid', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-              <span style={{ color: 'var(--text3)' }}>Prix estimé</span>
-              <span style={{ fontFamily: 'DM Serif Display, serif', fontSize: 18 }}>{fmt(objet.prix_estime)}</span>
-            </div>
-            {objet.vente && <>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                <span style={{ color: 'var(--text3)' }}>Prix de vente</span>
-                <span style={{ fontFamily: 'DM Serif Display, serif', fontSize: 18, color: 'var(--green)' }}>{fmt(objet.vente.prix_vente)}</span>
-              </div>
-              {objet.vente.marge != null && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}>
-                  <span style={{ color: 'var(--text3)' }}>Marge</span>
-                  <span style={{ color: objet.vente.marge >= 0 ? 'var(--green)' : 'var(--red)', fontWeight: 500 }}>{fmt(objet.vente.marge)}</span>
-                </div>
-              )}
-              <div style={{ marginTop: 4, padding: '8px 12px', background: 'var(--bg3)', borderRadius: 'var(--radius-sm)', fontSize: 13 }}>
-                <div style={{ color: 'var(--text3)', marginBottom: 4 }}>Vente</div>
-                <div>{objet.vente.plateforme || '—'} · {objet.vente.date_vente ? new Date(objet.vente.date_vente).toLocaleDateString('fr-FR') : '—'}</div>
-                {objet.vente.client && <div style={{ color: 'var(--accent)', marginTop: 4 }}>{objet.vente.client.prenom} {objet.vente.client.nom}</div>}
-              </div>
-            </>}
-          </div>
-        </div>
-      </div>
-
-      {/* Photos */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 20 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h3 style={{ fontSize: 16 }}>Photos</h3>
-          <Btn size="sm" onClick={() => fileRef.current?.click()}>+ Ajouter</Btn>
-          <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={uploadPhoto} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
-          {objet.photos.map(p => (
-            <div key={p.id} style={{ position: 'relative', borderRadius: 'var(--radius-sm)', overflow: 'hidden', aspectRatio: '1' }}>
-              <img src={photoUrl(p.chemin_fichier)} alt={p.legende || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              <button onClick={() => delPhoto(p.id)} style={{
-                position: 'absolute', top: 4, right: 4, background: 'rgba(0,0,0,0.7)',
-                border: 'none', color: '#fff', borderRadius: 20, width: 24, height: 24,
-                fontSize: 12, cursor: 'pointer',
-              }}>✕</button>
-            </div>
-          ))}
-          {objet.photos.length === 0 && (
-            <div style={{ color: 'var(--text3)', fontSize: 13, padding: '8px 0' }}>Aucune photo</div>
+          {objet.vente && (
+            <Btn size="sm" variant="primary" onClick={() => navigate('/ventes')}>
+              Voir la vente
+            </Btn>
           )}
         </div>
       </div>
 
-      {/* Modal vente */}
-      {venteModal && (
-        <Modal title={editVente ? 'Modifier la vente' : 'Mettre en vente'} onClose={() => setVenteModal(false)}>
-          <div style={{ display: 'grid', gap: 16 }}>
-            <Field label="Plateforme"><input value={venteForm.plateforme} onChange={e => fv('plateforme', e.target.value)} placeholder="eBay, Leboncoin..." /></Field>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Field label="Prix de vente (€)"><input type="number" value={venteForm.prix_vente} onChange={e => fv('prix_vente', e.target.value)} /></Field>
-              <Field label="Date de vente"><input type="date" value={venteForm.date_vente} onChange={e => fv('date_vente', e.target.value)} /></Field>
+      <div className="grid grid-cols-2 gap-6">
+        <Card>
+          <CardContent className="pt-5">
+            <h3 className="font-semibold mb-4">Caractéristiques</h3>
+            <div className="grid gap-2.5">
+              {([
+                ['Couleur', objet.couleur], ['Matériau', objet.materiau],
+                ['Poids', objet.poids], ['Dimensions', objet.dimensions],
+                ['Période', objet.periode],
+              ] as [string, string | undefined][]).map(([k, v]) => v ? (
+                <div key={k} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{k}</span>
+                  <span>{v}</span>
+                </div>
+              ) : null)}
             </div>
-            <Field label="Client (optionnel)">
-              <select value={venteForm.client_id} onChange={e => fv('client_id', e.target.value)}>
-                <option value="">Aucun client associé</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.nom} {c.prenom}</option>)}
-              </select>
-            </Field>
-            <Field label="Statut">
-              <select value={venteForm.statut} onChange={e => fv('statut', e.target.value)}>
-                <option value="en_ligne">En ligne</option>
-                <option value="vendu">Vendu</option>
-                <option value="annule">Annulé</option>
-              </select>
-            </Field>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
-              <Btn onClick={() => setVenteModal(false)}>Annuler</Btn>
-              <Btn variant="primary" onClick={saveVente}>Enregistrer</Btn>
-            </div>
-          </div>
-        </Modal>
-      )}
+            {objet.description && (
+              <p className="mt-4 text-sm text-foreground/80 leading-relaxed">{objet.description}</p>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* Modal modifier objet */}
+        <Card>
+          <CardContent className="pt-5">
+            <h3 className="font-semibold mb-4">Finance</h3>
+            <div className="grid gap-3">
+              {objet.prix_achat != null && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Prix d'achat</span>
+                  <span className="text-lg font-semibold text-red-500">{fmt(objet.prix_achat)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Prix estimé</span>
+                <span className="text-lg font-semibold">{fmt(objet.prix_estime)}</span>
+              </div>
+              {objet.vente && <>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Prix de vente</span>
+                  <span className="text-lg font-semibold text-green-600">{fmt(objet.vente.prix_vente)}</span>
+                </div>
+                {objet.vente.prix_vente != null && objet.prix_achat != null && (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Marge</span>
+                    <span className={cn('font-medium', (objet.vente.prix_vente - objet.prix_achat) >= 0 ? 'text-green-600' : 'text-destructive')}>
+                      {fmt(objet.vente.prix_vente - objet.prix_achat)}
+                    </span>
+                  </div>
+                )}
+                <div className="mt-1 p-3 bg-muted/50 rounded-md text-sm">
+                  <div className="text-muted-foreground text-xs mb-1">Vente</div>
+                  <div>{objet.vente.plateforme || '—'} · {objet.vente.date_vente ? new Date(objet.vente.date_vente).toLocaleDateString('fr-FR') : '—'}</div>
+                  {objet.vente.client && (
+                    <div className="text-primary mt-1">{objet.vente.client.prenom} {objet.vente.client.nom}</div>
+                  )}
+                </div>
+              </>}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardContent className="pt-5">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Photos</h3>
+            <Btn size="sm" onClick={() => fileRef.current?.click()}>+ Ajouter</Btn>
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={uploadPhoto} />
+          </div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(130px,1fr))] gap-3">
+            {objet.photos.map(p => (
+              <div key={p.id} className="relative rounded-md overflow-hidden aspect-square">
+                <img src={photoUrl(p.chemin_fichier)} alt={p.legende || ''} className="w-full h-full object-cover" />
+                <button
+                  onClick={() => delPhoto(p.id)}
+                  className="absolute top-1.5 right-1.5 bg-black/70 text-white rounded-full w-6 h-6 text-xs flex items-center justify-center hover:bg-black/90 transition-colors"
+                >✕</button>
+              </div>
+            ))}
+            {objet.photos.length === 0 && (
+              <div className="text-muted-foreground text-sm py-2">Aucune photo</div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {editObjetModal && (
         <Modal title="Modifier l'objet" onClose={() => setEditObjetModal(false)}>
-          <div style={{ display: 'grid', gap: 16 }}>
-            <Field label="Désignation *"><input value={editForm.designation} onChange={e => fe('designation', e.target.value)} /></Field>
-            <Field label="Description"><textarea value={editForm.description} onChange={e => fe('description', e.target.value)} rows={3} /></Field>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Field label="Couleur"><input value={editForm.couleur} onChange={e => fe('couleur', e.target.value)} /></Field>
-              <Field label="Matériau"><input value={editForm.materiau} onChange={e => fe('materiau', e.target.value)} /></Field>
-              <Field label="Poids"><input value={editForm.poids} onChange={e => fe('poids', e.target.value)} /></Field>
-              <Field label="Dimensions"><input value={editForm.dimensions} onChange={e => fe('dimensions', e.target.value)} /></Field>
-              <Field label="Période"><input value={editForm.periode} onChange={e => fe('periode', e.target.value)} /></Field>
-              <Field label="Prix estimé (€)"><input type="number" value={editForm.prix_estime} onChange={e => fe('prix_estime', e.target.value)} /></Field>
+          <div className="grid gap-4">
+            <Field label="Désignation *"><Input value={editForm.designation} onChange={e => fe('designation', e.target.value)} /></Field>
+            <Field label="Description"><textarea className={textareaCls} value={editForm.description} onChange={e => fe('description', e.target.value)} rows={3} /></Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Couleur"><Input value={editForm.couleur} onChange={e => fe('couleur', e.target.value)} /></Field>
+              <Field label="Matériau"><Input value={editForm.materiau} onChange={e => fe('materiau', e.target.value)} /></Field>
+              <Field label="Poids"><Input value={editForm.poids} onChange={e => fe('poids', e.target.value)} /></Field>
+              <Field label="Dimensions"><Input value={editForm.dimensions} onChange={e => fe('dimensions', e.target.value)} /></Field>
+              <Field label="Période"><Input value={editForm.periode} onChange={e => fe('periode', e.target.value)} /></Field>
+              <Field label="Prix d'achat (€)"><Input type="number" value={editForm.prix_achat} onChange={e => fe('prix_achat', e.target.value)} /></Field>
+              <Field label="Prix estimé (€)"><Input type="number" value={editForm.prix_estime} onChange={e => fe('prix_estime', e.target.value)} /></Field>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 8 }}>
+            <div className="flex justify-end gap-2 pt-2">
               <Btn onClick={() => setEditObjetModal(false)}>Annuler</Btn>
               <Btn variant="primary" onClick={saveObjet}>Enregistrer</Btn>
             </div>

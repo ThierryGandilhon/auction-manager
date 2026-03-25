@@ -7,24 +7,23 @@ export interface Etude {
   site_web?: string
 }
 
-export interface Auction {
+export interface Achat {
   id: number
   etude_id: number
-  titre: string
-  date_auction?: string
+  titre?: string
+  date_achat?: string
   lieu?: string
-  url_catalogue?: string
   notes?: string
   etude: Etude
 }
 
-export interface Achat {
+export interface Lot {
   id: number
-  auction_id: number
+  achat_id: number
   numero_lot?: string
   prix_achat?: number
   notes?: string
-  auction: Auction
+  achat: { id: number; titre?: string; date_achat?: string }
 }
 
 export interface Photo {
@@ -33,9 +32,24 @@ export interface Photo {
   legende?: string
 }
 
+export interface ClientShort {
+  id: number
+  nom: string
+  prenom?: string
+}
+
+export interface VenteShort {
+  id: number
+  plateforme?: string
+  date_vente?: string
+  statut: string
+  prix_vente?: number
+  client?: ClientShort
+}
+
 export interface Objet {
   id: number
-  achat_id: number
+  lot_id: number
   designation: string
   description?: string
   couleur?: string
@@ -43,10 +57,12 @@ export interface Objet {
   poids?: string
   dimensions?: string
   periode?: string
+  prix_achat?: number
   prix_estime?: number
-  statut: 'en_stock' | 'en_vente' | 'vendu'
-  achat: Achat
+  statut: 'acheté' | 'en_vente' | 'vendu'
+  lot: { id: number; numero_lot?: string; prix_achat?: number; achat_id: number }
   photos: Photo[]
+  vente?: VenteShort
 }
 
 export interface Client {
@@ -59,26 +75,38 @@ export interface Client {
   notes?: string
 }
 
-export interface Vente {
+export interface VenteObjet {
   id: number
   objet_id: number
+  prix_vente?: number
+  marge?: number
+  objet: {
+    id: number
+    designation: string
+    prix_achat?: number
+    statut: string
+  }
+}
+
+export interface Vente {
+  id: number
   client_id?: number
   plateforme?: string
-  prix_vente?: number
   date_vente?: string
-  statut: 'en_ligne' | 'vendu' | 'annule'
-  objet: Objet
-  client?: Client
-  marge?: number
+  notes?: string
+  statut: 'en_cours' | 'finalisée' | 'annulée'
+  client?: ClientShort
+  vente_objets: VenteObjet[]
+  total_vente?: number
 }
 
 export interface DashboardStats {
-  total_lots_achetes: number
+  total_lots: number
   total_objets: number
   total_investi: number
   total_revendu: number
   marge_totale: number
-  objets_en_stock: number
+  objets_achetes: number
   objets_en_vente: number
   objets_vendus: number
   total_clients: number

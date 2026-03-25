@@ -13,7 +13,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 class ObjetBase(BaseModel):
-    achat_id: int
+    lot_id: int
     designation: str
     description: Optional[str] = None
     couleur: Optional[str] = None
@@ -21,8 +21,9 @@ class ObjetBase(BaseModel):
     poids: Optional[str] = None
     dimensions: Optional[str] = None
     periode: Optional[str] = None
+    prix_achat: Optional[Decimal] = None
     prix_estime: Optional[Decimal] = None
-    statut: Optional[str] = "en_stock"
+    statut: Optional[str] = "acheté"
 
 class ObjetCreate(ObjetBase):
     pass
@@ -34,54 +35,98 @@ class PhotoOut(BaseModel):
     class Config:
         from_attributes = True
 
-class AchatShort(BaseModel):
+class LotShort(BaseModel):
     id: int
     numero_lot: Optional[str] = None
     prix_achat: Optional[Decimal] = None
+    achat_id: int
+    class Config:
+        from_attributes = True
+
+class ClientShort(BaseModel):
+    id: int
+    nom: str
+    prenom: Optional[str] = None
+    class Config:
+        from_attributes = True
+
+class VenteShort(BaseModel):
+    id: int
+    plateforme: Optional[str] = None
+    date_vente: Optional[object] = None
+    statut: str
+    prix_vente: Optional[Decimal] = None
+    client: Optional[ClientShort] = None
     class Config:
         from_attributes = True
 
 class ObjetOut(ObjetBase):
     id: int
-    achat: AchatShort
+    lot: LotShort
     photos: List[PhotoOut] = []
+    vente: Optional[VenteShort] = None
     class Config:
         from_attributes = True
 
 
+def get_objet_with_vente(db: Session, objet_id: int) -> Optional[models.Objet]:
+    objet = db.query(models.Objet).options(
+        joinedload(models.Objet.lot),
+        joinedload(models.Objet.photos),
+        joinedload(models.Objet.vente_objets).joinedload(models.VenteObjet.vente).joinedload(models.Vente.client),
+    ).filter(models.Objet.id == objet_id).first()
+    return objet
+
+
+def enrich_objet(objet: models.Objet) -> dict:
+    """Attach active vente info to objet output."""
+    data = {c.key: getattr(objet, c.key) for c in objet.__table__.columns}
+    data['lot'] = objet.lot
+    data['photos'] = objet.photos
+    data['vente'] = None
+    # Find active (non-annulée) vente
+    for vo in objet.vente_objets:
+        if vo.vente and vo.vente.statut != 'annulée':
+            data['vente'] = {
+                'id': vo.vente.id,
+                'plateforme': vo.vente.plateforme,
+                'date_vente': vo.vente.date_vente,
+                'statut': vo.vente.statut,
+                'prix_vente': vo.prix_vente,
+                'client': vo.vente.client,
+            }
+            break
+    return data
+
+
 @router.get("/", response_model=List[ObjetOut])
-def list_objets(achat_id: Optional[int] = None, statut: Optional[str] = None, db: Session = Depends(get_db)):
+def list_objets(lot_id: Optional[int] = None, statut: Optional[str] = None, db: Session = Depends(get_db)):
     q = db.query(models.Objet).options(
-        joinedload(models.Objet.achat),
-        joinedload(models.Objet.photos)
+        joinedload(models.Objet.lot),
+        joinedload(models.Objet.photos),
+        joinedload(models.Objet.vente_objets).joinedload(models.VenteObjet.vente).joinedload(models.Vente.client),
     )
-    if achat_id:
-        q = q.filter(models.Objet.achat_id == achat_id)
+    if lot_id:
+        q = q.filter(models.Objet.lot_id == lot_id)
     if statut:
         q = q.filter(models.Objet.statut == statut)
-    return q.all()
+    return [ObjetOut.model_validate(enrich_objet(o)) for o in q.all()]
 
 @router.get("/{objet_id}", response_model=ObjetOut)
 def get_objet(objet_id: int, db: Session = Depends(get_db)):
-    objet = db.query(models.Objet).options(
-        joinedload(models.Objet.achat),
-        joinedload(models.Objet.photos)
-    ).filter(models.Objet.id == objet_id).first()
+    objet = get_objet_with_vente(db, objet_id)
     if not objet:
         raise HTTPException(status_code=404, detail="Objet introuvable")
-    return objet
+    return ObjetOut.model_validate(enrich_objet(objet))
 
 @router.post("/", response_model=ObjetOut, status_code=201)
 def create_objet(objet: ObjetCreate, db: Session = Depends(get_db)):
-    if not db.query(models.Achat).filter(models.Achat.id == objet.achat_id).first():
-        raise HTTPException(status_code=404, detail="Achat introuvable")
+    if not db.query(models.Lot).filter(models.Lot.id == objet.lot_id).first():
+        raise HTTPException(status_code=404, detail="Lot introuvable")
     db_objet = models.Objet(**objet.model_dump())
     db.add(db_objet)
     db.commit()
-    db.refresh(db_objet)
-    return db.query(models.Objet).options(
-        joinedload(models.Objet.achat), joinedload(models.Objet.photos)
-    ).filter(models.Objet.id == db_objet.id).first()
+    return ObjetOut.model_validate(enrich_objet(get_objet_with_vente(db, db_objet.id)))
 
 @router.put("/{objet_id}", response_model=ObjetOut)
 def update_objet(objet_id: int, objet: ObjetCreate, db: Session = Depends(get_db)):
@@ -91,9 +136,7 @@ def update_objet(objet_id: int, objet: ObjetCreate, db: Session = Depends(get_db
     for key, value in objet.model_dump().items():
         setattr(db_objet, key, value)
     db.commit()
-    return db.query(models.Objet).options(
-        joinedload(models.Objet.achat), joinedload(models.Objet.photos)
-    ).filter(models.Objet.id == objet_id).first()
+    return ObjetOut.model_validate(enrich_objet(get_objet_with_vente(db, objet_id)))
 
 @router.delete("/{objet_id}", status_code=204)
 def delete_objet(objet_id: int, db: Session = Depends(get_db)):

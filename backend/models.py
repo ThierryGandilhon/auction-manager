@@ -13,42 +13,41 @@ class Etude(Base):
     telephone = Column(String(50))
     site_web = Column(String(300))
 
-    auctions = relationship("Auction", back_populates="etude", cascade="all, delete-orphan")
-
-
-class Auction(Base):
-    __tablename__ = "auctions"
-
-    id = Column(Integer, primary_key=True, index=True)
-    etude_id = Column(Integer, ForeignKey("etudes.id"), nullable=False)
-    titre = Column(String(300), nullable=False)
-    date_auction = Column(Date)
-    lieu = Column(String(200))
-    url_catalogue = Column(String(500))
-    notes = Column(Text)
-
-    etude = relationship("Etude", back_populates="auctions")
-    achats = relationship("Achat", back_populates="auction", cascade="all, delete-orphan")
+    achats = relationship("Achat", back_populates="etude", cascade="all, delete-orphan")
 
 
 class Achat(Base):
     __tablename__ = "achats"
 
     id = Column(Integer, primary_key=True, index=True)
-    auction_id = Column(Integer, ForeignKey("auctions.id"), nullable=False)
+    etude_id = Column(Integer, ForeignKey("etudes.id"), nullable=False)
+    titre = Column(String(300))
+    date_achat = Column(Date)
+    lieu = Column(String(200))
+    notes = Column(Text)
+
+    etude = relationship("Etude", back_populates="achats")
+    lots = relationship("Lot", back_populates="achat", cascade="all, delete-orphan")
+
+
+class Lot(Base):
+    __tablename__ = "lots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    achat_id = Column(Integer, ForeignKey("achats.id"), nullable=False)
     numero_lot = Column(String(50))
     prix_achat = Column(Numeric(10, 2), default=0)
     notes = Column(Text)
 
-    auction = relationship("Auction", back_populates="achats")
-    objets = relationship("Objet", back_populates="achat", cascade="all, delete-orphan")
+    achat = relationship("Achat", back_populates="lots")
+    objets = relationship("Objet", back_populates="lot", cascade="all, delete-orphan")
 
 
 class Objet(Base):
     __tablename__ = "objets"
 
     id = Column(Integer, primary_key=True, index=True)
-    achat_id = Column(Integer, ForeignKey("achats.id"), nullable=False)
+    lot_id = Column(Integer, ForeignKey("lots.id"), nullable=False)
     designation = Column(String(300), nullable=False)
     description = Column(Text)
     couleur = Column(String(100))
@@ -56,13 +55,14 @@ class Objet(Base):
     poids = Column(String(50))
     dimensions = Column(String(100))
     periode = Column(String(100))
+    prix_achat = Column(Numeric(10, 2), nullable=True)
     prix_estime = Column(Numeric(10, 2), nullable=True)
-    # statut : "en_stock", "en_vente", "vendu"
-    statut = Column(String(50), default="en_stock")
+    # statut : "acheté", "en_vente", "vendu"
+    statut = Column(String(50), default="acheté")
 
-    achat = relationship("Achat", back_populates="objets")
+    lot = relationship("Lot", back_populates="objets")
     photos = relationship("Photo", back_populates="objet", cascade="all, delete-orphan")
-    vente = relationship("Vente", back_populates="objet", uselist=False, cascade="all, delete-orphan")
+    vente_objets = relationship("VenteObjet", back_populates="objet", cascade="all, delete-orphan")
 
 
 class Photo(Base):
@@ -94,13 +94,24 @@ class Vente(Base):
     __tablename__ = "ventes"
 
     id = Column(Integer, primary_key=True, index=True)
-    objet_id = Column(Integer, ForeignKey("objets.id"), nullable=False)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
     plateforme = Column(String(100))
-    prix_vente = Column(Numeric(10, 2))
     date_vente = Column(Date)
-    # statut : "en_ligne", "vendu", "annule"
-    statut = Column(String(50), default="en_ligne")
+    notes = Column(Text)
+    # statut : "en_cours", "finalisée", "annulée"
+    statut = Column(String(50), default="en_cours")
 
-    objet = relationship("Objet", back_populates="vente")
     client = relationship("Client", back_populates="ventes")
+    vente_objets = relationship("VenteObjet", back_populates="vente", cascade="all, delete-orphan")
+
+
+class VenteObjet(Base):
+    __tablename__ = "vente_objets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    vente_id = Column(Integer, ForeignKey("ventes.id"), nullable=False)
+    objet_id = Column(Integer, ForeignKey("objets.id"), nullable=False)
+    prix_vente = Column(Numeric(10, 2), nullable=True)
+
+    vente = relationship("Vente", back_populates="vente_objets")
+    objet = relationship("Objet", back_populates="vente_objets")

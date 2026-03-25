@@ -9,12 +9,12 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from '@/components/ui/sidebar'
-import { LayoutDashboard, Building2, Gavel, Package, Users, ShoppingBag } from 'lucide-react'
+import { LayoutDashboard, Building2, ShoppingCart, Package, Users, ShoppingBag } from 'lucide-react'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/etudes', label: 'Études', icon: Building2 },
-  { to: '/auctions', label: 'Auctions', icon: Gavel },
+  { to: '/achats', label: 'Achats', icon: ShoppingCart },
   { to: '/objets', label: 'Objets', icon: Package },
   { to: '/clients', label: 'Clients', icon: Users },
   { to: '/ventes', label: 'Ventes', icon: ShoppingBag },

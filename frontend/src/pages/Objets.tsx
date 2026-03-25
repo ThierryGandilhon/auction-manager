@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
-import { objetsApi } from '../lib/api'
-import { Objet } from '../types/index'
+import { objetsApi, photoUrl } from '../lib/api'
+import type { Objet } from '../types/index'
 import Btn from '../components/Btn'
+import { Badge } from '@/components/ui/badge'
 import { useNavigate } from 'react-router-dom'
-import { photoUrl } from '../lib/api'
 
-const statutBadge: Record<string, { label: string; color: string; bg: string }> = {
-  en_stock: { label: 'En stock', color: 'var(--text2)', bg: 'var(--bg3)' },
-  en_vente: { label: 'En vente', color: 'var(--blue)', bg: 'var(--blue-dim)' },
-  vendu:    { label: 'Vendu',    color: 'var(--green)', bg: 'var(--green-dim)' },
+const statutConfig: Record<string, { label: string; className: string }> = {
+  'acheté':  { label: 'Acheté',   className: 'bg-muted text-muted-foreground hover:bg-muted' },
+  en_vente:  { label: 'En vente', className: 'bg-blue-500/10 text-blue-600 hover:bg-blue-500/10' },
+  vendu:     { label: 'Vendu',    className: 'bg-green-500/10 text-green-600 hover:bg-green-500/10' },
 }
 
 export default function Objets() {
@@ -21,50 +21,47 @@ export default function Objets() {
   const fmt = (n?: number) => n != null ? Number(n).toLocaleString('fr-FR', { style: 'currency', currency: 'EUR' }) : '—'
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
+    <div className="space-y-6">
+      <div className="flex justify-between items-start">
         <div>
-          <h1 style={{ fontSize: 32, marginBottom: 4 }}>Objets</h1>
-          <p style={{ color: 'var(--text3)' }}>Tous vos objets</p>
+          <h1 className="text-3xl font-semibold tracking-tight">Objets</h1>
+          <p className="text-muted-foreground mt-1">Tous vos objets</p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['', 'en_stock', 'en_vente', 'vendu'].map(s => (
+        <div className="flex gap-2">
+          {(['', 'acheté', 'en_vente', 'vendu'] as const).map(s => (
             <Btn key={s} size="sm" variant={filtre === s ? 'primary' : 'ghost'} onClick={() => setFiltre(s)}>
-              {s === '' ? 'Tous' : statutBadge[s].label}
+              {s === '' ? 'Tous' : statutConfig[s].label}
             </Btn>
           ))}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
+      <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-4">
         {objets.map(o => {
-          const badge = statutBadge[o.statut]
+          const cfg = statutConfig[o.statut] || statutConfig['acheté']
           const photo = o.photos[0]
           return (
-            <div key={o.id} style={{
-              background: 'var(--bg2)', border: '1px solid var(--border)',
-              borderRadius: 'var(--radius)', overflow: 'hidden', cursor: 'pointer',
-              transition: 'border-color 0.15s',
-            }} onClick={() => navigate(`/objets/${o.id}`)}>
-              <div style={{ height: 160, background: 'var(--bg3)', overflow: 'hidden' }}>
+            <div key={o.id}
+              className="bg-card border rounded-lg overflow-hidden cursor-pointer hover:border-ring/50 transition-colors"
+              onClick={() => navigate(`/objets/${o.id}`)}
+            >
+              <div className="h-40 bg-muted overflow-hidden">
                 {photo
-                  ? <img src={photoUrl(photo.chemin_fichier)} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, color: 'var(--border2)' }}>◉</div>
+                  ? <img src={photoUrl(photo.chemin_fichier)} alt="" className="w-full h-full object-cover" />
+                  : <div className="h-full flex items-center justify-center text-3xl text-muted-foreground/30">◉</div>
                 }
               </div>
-              <div style={{ padding: '14px 16px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
-                  <div style={{ fontWeight: 500, fontSize: 14, flex: 1, marginRight: 8 }}>{o.designation}</div>
-                  <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: badge.bg, color: badge.color, whiteSpace: 'nowrap' }}>
-                    {badge.label}
-                  </span>
+              <div className="p-4">
+                <div className="flex justify-between items-start gap-2 mb-1">
+                  <div className="font-medium text-sm flex-1">{o.designation}</div>
+                  <Badge className={cfg.className}>{cfg.label}</Badge>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>
-                  {o.achat?.auction?.titre || '—'}
+                <div className="text-xs text-muted-foreground mb-3">
+                  Lot {o.lot?.numero_lot || o.lot_id}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--text3)' }}>Estimé</span>
-                  <span style={{ fontFamily: 'DM Serif Display, serif', color: 'var(--accent)' }}>{fmt(o.prix_estime)}</span>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Estimé</span>
+                  <span className="font-semibold text-primary">{fmt(o.prix_estime)}</span>
                 </div>
               </div>
             </div>
@@ -72,7 +69,7 @@ export default function Objets() {
         })}
       </div>
       {objets.length === 0 && (
-        <div style={{ color: 'var(--text3)', textAlign: 'center', padding: 60 }}>Aucun objet</div>
+        <div className="text-muted-foreground text-center py-10">Aucun objet</div>
       )}
     </div>
   )
